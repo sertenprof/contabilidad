@@ -9,17 +9,29 @@
   <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800;900&display=swap"
     rel="stylesheet">
   <link rel="stylesheet" href="style.css">
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </head>
 
 <body>
 
-  <!-- LOADING -->
+  <!-- PANTALLA DE CARGA INICIAL -->
   <div class="loader-overlay" id="loader">
     <div class="loader-spinner"></div>
-    <span>Cargando sistema...</span>
+    <span>Verificando sesion...</span>
   </div>
 
-  <!-- SIDEBAR -->
+  <!-- PANTALLA DE LOGIN -->
+  <div class="auth-screen" id="authScreen">
+    <div class="auth-card">
+      <h2><i class="fas fa-calculator"></i> Contabilidad</h2>
+      <p>Inicia sesion con GitHub para acceder al sistema</p>
+      <button class="bt bt-p" id="loginBtn" style="width:100%;justify-content:center;font-size:15px;padding:14px">
+        <i class="fab fa-github"></i> Entrar con GitHub
+      </button>
+    </div>
+  </div>
+
+  <!-- APLICACIÓN PRINCIPAL -->
   <aside class="sb" id="sb">
     <div class="sb-brand">
       <h2><i class="fas fa-calculator" style="margin-right:6px;font-size:14px"></i>Contabilidad</h2>
@@ -36,11 +48,10 @@
       <a data-s="ratios"><i class="fas fa-chart-line"></i>Indicadores Financieros</a>
       <a data-s="config"><i class="fas fa-gear"></i>Configuracion</a>
     </nav>
-    <div class="sb-foot">v1.1 &mdash; Moneda: CUP</div>
+    <div class="sb-foot">v2.0 Supabase &mdash; CUP</div>
   </aside>
 
-  <!-- MAIN -->
-  <div class="mn">
+  <div class="mn" id="mainApp" style="display:none;">
     <header class="top">
       <div class="top-l">
         <button class="mob-btn" id="mobBtn"><i class="fas fa-bars"></i></button>
@@ -65,18 +76,15 @@
     </header>
 
     <div class="ct">
-
       <!-- DASHBOARD -->
       <section class="sec on" id="s-dashboard">
         <div class="kpi-g" id="kpiG"></div>
         <div class="ch-g">
           <div class="ch-card">
-            <h3>Ventas vs Costos vs Gastos</h3>
-            <canvas id="cvBar" height="200"></canvas>
+            <h3>Ventas vs Costos vs Gastos</h3><canvas id="cvBar" height="200"></canvas>
           </div>
           <div class="ch-card">
-            <h3>Desglose de Gastos</h3>
-            <canvas id="cvDon" height="200"></canvas>
+            <h3>Desglose de Gastos</h3><canvas id="cvDon" height="200"></canvas>
           </div>
         </div>
         <div class="mb-t">
@@ -198,8 +206,8 @@
         <div class="g2">
           <div class="tc">
             <div class="tc-h">
-              <h3>Inventario Inicial</h3>
-              <button class="bt bt-p bt-i" onclick="addInv('Inventario_Inicial')"><i class="fas fa-plus"></i></button>
+              <h3>Inventario Inicial</h3><button class="bt bt-p bt-i" onclick="addInv('inventario_inicial')"><i
+                  class="fas fa-plus"></i></button>
             </div>
             <div class="tw">
               <table>
@@ -219,8 +227,8 @@
           </div>
           <div class="tc">
             <div class="tc-h">
-              <h3>Inventario Final</h3>
-              <button class="bt bt-p bt-i" onclick="addInv('Inventario_Final')"><i class="fas fa-plus"></i></button>
+              <h3>Inventario Final</h3><button class="bt bt-p bt-i" onclick="addInv('inventario_final')"><i
+                  class="fas fa-plus"></i></button>
             </div>
             <div class="tw">
               <table>
@@ -286,9 +294,7 @@
     </div>
   </div>
 
-  <!-- TOAST -->
   <div class="toast-c" id="toC"></div>
-
   <script src="script.js"></script>
 </body>
 
