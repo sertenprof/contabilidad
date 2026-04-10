@@ -1,0 +1,295 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Sistema de Contabilidad</title>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800;900&display=swap"
+    rel="stylesheet">
+  <link rel="stylesheet" href="style.css">
+</head>
+
+<body>
+
+  <!-- LOADING -->
+  <div class="loader-overlay" id="loader">
+    <div class="loader-spinner"></div>
+    <span>Cargando sistema...</span>
+  </div>
+
+  <!-- SIDEBAR -->
+  <aside class="sb" id="sb">
+    <div class="sb-brand">
+      <h2><i class="fas fa-calculator" style="margin-right:6px;font-size:14px"></i>Contabilidad</h2>
+      <span>Sistema de Gestion</span>
+    </div>
+    <nav id="nav">
+      <a data-s="dashboard" class="on"><i class="fas fa-chart-pie"></i>Dashboard</a>
+      <a data-s="ventas"><i class="fas fa-cash-register"></i>Ventas</a>
+      <a data-s="gastos"><i class="fas fa-receipt"></i>Gastos</a>
+      <a data-s="costos"><i class="fas fa-boxes-stacked"></i>Costos</a>
+      <a data-s="compras"><i class="fas fa-cart-shopping"></i>Compras</a>
+      <a data-s="inventario"><i class="fas fa-warehouse"></i>Inventario</a>
+      <a data-s="estado"><i class="fas fa-file-invoice-dollar"></i>Estado de Resultado</a>
+      <a data-s="ratios"><i class="fas fa-chart-line"></i>Indicadores Financieros</a>
+      <a data-s="config"><i class="fas fa-gear"></i>Configuracion</a>
+    </nav>
+    <div class="sb-foot">v1.1 &mdash; Moneda: CUP</div>
+  </aside>
+
+  <!-- MAIN -->
+  <div class="mn">
+    <header class="top">
+      <div class="top-l">
+        <button class="mob-btn" id="mobBtn"><i class="fas fa-bars"></i></button>
+        <h1 id="pgT">Dashboard</h1>
+      </div>
+      <select id="mf">
+        <option value="">Todos los meses</option>
+        <option value="1">Enero</option>
+        <option value="2">Febrero</option>
+        <option value="3">Marzo</option>
+        <option value="4">Abril</option>
+        <option value="5">Mayo</option>
+        <option value="6">Junio</option>
+        <option value="7">Julio</option>
+        <option value="8">Agosto</option>
+        <option value="9">Septiembre</option>
+        <option value="10">Octubre</option>
+        <option value="11">Noviembre</option>
+        <option value="12">Diciembre</option>
+      </select>
+      <div class="top-r" id="topA"></div>
+    </header>
+
+    <div class="ct">
+
+      <!-- DASHBOARD -->
+      <section class="sec on" id="s-dashboard">
+        <div class="kpi-g" id="kpiG"></div>
+        <div class="ch-g">
+          <div class="ch-card">
+            <h3>Ventas vs Costos vs Gastos</h3>
+            <canvas id="cvBar" height="200"></canvas>
+          </div>
+          <div class="ch-card">
+            <h3>Desglose de Gastos</h3>
+            <canvas id="cvDon" height="200"></canvas>
+          </div>
+        </div>
+        <div class="mb-t">
+          <h3>Margenes de Rentabilidad</h3>
+        </div>
+        <div class="mb-g" id="mbG"></div>
+        <div class="g2">
+          <div class="tc" id="dcCosto"></div>
+          <div class="tc" id="dcGasto"></div>
+        </div>
+      </section>
+
+      <!-- VENTAS -->
+      <section class="sec" id="s-ventas">
+        <div class="tc">
+          <div class="tc-h">
+            <h3>Registro de Ventas</h3>
+          </div>
+          <div class="tw">
+            <table>
+              <thead>
+                <tr>
+                  <th>Fecha</th>
+                  <th>Descripcion</th>
+                  <th>Tipo</th>
+                  <th>Transferencia</th>
+                  <th>Efectivo</th>
+                  <th>Otros</th>
+                  <th>Total</th>
+                  <th>Mes</th>
+                  <th></th>
+                </tr>
+              </thead>
+              <tbody id="tbV"></tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
+      <!-- GASTOS -->
+      <section class="sec" id="s-gastos">
+        <div class="tc">
+          <div class="tc-h">
+            <h3>Registro de Gastos</h3>
+          </div>
+          <div class="tw">
+            <table>
+              <thead>
+                <tr>
+                  <th>Fecha</th>
+                  <th>Descripcion</th>
+                  <th>Subcategoria</th>
+                  <th>Monto</th>
+                  <th>Tipo</th>
+                  <th>Categoria</th>
+                  <th>Factura</th>
+                  <th></th>
+                </tr>
+              </thead>
+              <tbody id="tbG"></tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
+      <!-- COSTOS -->
+      <section class="sec" id="s-costos">
+        <div class="tc">
+          <div class="tc-h">
+            <h3>Registro de Costos</h3>
+          </div>
+          <div class="tw">
+            <table>
+              <thead>
+                <tr>
+                  <th>Fecha</th>
+                  <th>Descripcion</th>
+                  <th>Monto</th>
+                  <th>Clasificacion</th>
+                  <th>Tipo</th>
+                  <th>Factura</th>
+                  <th></th>
+                </tr>
+              </thead>
+              <tbody id="tbC"></tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
+      <!-- COMPRAS -->
+      <section class="sec" id="s-compras">
+        <div class="tc">
+          <div class="tc-h">
+            <h3>Registro de Compras</h3>
+          </div>
+          <div class="tw">
+            <table>
+              <thead>
+                <tr>
+                  <th>Fecha</th>
+                  <th>Producto</th>
+                  <th>Cantidad</th>
+                  <th>U/M</th>
+                  <th>Precio</th>
+                  <th>Monto</th>
+                  <th>Stock</th>
+                  <th></th>
+                </tr>
+              </thead>
+              <tbody id="tbCo"></tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
+      <!-- INVENTARIO -->
+      <section class="sec" id="s-inventario">
+        <div class="g2">
+          <div class="tc">
+            <div class="tc-h">
+              <h3>Inventario Inicial</h3>
+              <button class="bt bt-p bt-i" onclick="addInv('Inventario_Inicial')"><i class="fas fa-plus"></i></button>
+            </div>
+            <div class="tw">
+              <table>
+                <thead>
+                  <tr>
+                    <th>Producto</th>
+                    <th>U/M</th>
+                    <th>Cant.</th>
+                    <th>Precio</th>
+                    <th>Valor Total</th>
+                    <th></th>
+                  </tr>
+                </thead>
+                <tbody id="tbII"></tbody>
+              </table>
+            </div>
+          </div>
+          <div class="tc">
+            <div class="tc-h">
+              <h3>Inventario Final</h3>
+              <button class="bt bt-p bt-i" onclick="addInv('Inventario_Final')"><i class="fas fa-plus"></i></button>
+            </div>
+            <div class="tw">
+              <table>
+                <thead>
+                  <tr>
+                    <th>Producto</th>
+                    <th>U/M</th>
+                    <th>Cant.</th>
+                    <th>Precio</th>
+                    <th>Valor Total</th>
+                    <th></th>
+                  </tr>
+                </thead>
+                <tbody id="tbIF"></tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ESTADO DE RESULTADO -->
+      <section class="sec" id="s-estado">
+        <div class="tc">
+          <div class="tc-h">
+            <h3 id="estT">Estado de Resultado</h3>
+          </div>
+          <div class="tw">
+            <table class="et">
+              <tbody id="tbE"></tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
+      <!-- RATIOS -->
+      <section class="sec" id="s-ratios">
+        <div class="rt-g" id="rtG"></div>
+      </section>
+
+      <!-- CONFIG -->
+      <section class="sec" id="s-config">
+        <div style="margin-bottom:18px">
+          <button class="bt bt-g" onclick="saveCfg()"><i class="fas fa-save"></i> Guardar Configuracion</button>
+        </div>
+        <div class="cfg-g" id="cfgG"></div>
+      </section>
+
+    </div>
+  </div>
+
+  <!-- MODAL -->
+  <div class="mo" id="moOv">
+    <div class="md">
+      <div class="md-h">
+        <h3 id="moT">Agregar</h3>
+        <button class="md-x" onclick="clMo()">&times;</button>
+      </div>
+      <div class="md-b" id="moB"></div>
+      <div class="md-f">
+        <button class="bt bt-s" onclick="clMo()">Cancelar</button>
+        <button class="bt bt-p" id="moSv">Guardar</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- TOAST -->
+  <div class="toast-c" id="toC"></div>
+
+  <script src="script.js"></script>
+</body>
+
+</html>
