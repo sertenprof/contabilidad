@@ -5,7 +5,7 @@
 //
 //  >>> PEGA AQUÍ LA URL DE TU WEB APP DEPLOY <<<
 //
-var API_URL = 'https://script.google.com/macros/s/AKfycbxF7re4f3uxmmvi0PbMT6LF6yPI6fRdJd7wjk82qK_yQHTvsYEPBHP4aOCNH4D2iejeqA/exec';
+var API_URL = 'https://script.google.com/macros/s/AKfycbyAuMHfopCmADdXZyqSeGY0SNe3fWI9Az4ElaXnkBlQTeXIawsplDs7aDJLdiXXnNDzww/exec';
 //
 // ══════════════════════════════════════════════════
 
@@ -1003,7 +1003,7 @@ window.addEventListener('hashchange', function () {
 // ══════════════════════════════════════
 document.addEventListener('DOMContentLoaded', function () {
   // Verificar que la URL esta configurada
-  if (API_URL.indexOf('https://script.google.com/macros/s/AKfycbxF7re4f3uxmmvi0PbMT6LF6yPI6fRdJd7wjk82qK_yQHTvsYEPBHP4aOCNH4D2iejeqA/exec') !== -1) {
+  if (API_URL.indexOf('https://script.google.com/macros/s/AKfycbyAuMHfopCmADdXZyqSeGY0SNe3fWI9Az4ElaXnkBlQTeXIawsplDs7aDJLdiXXnNDzww/exec') !== -1) {
     showConnError(new Error(
       'Abre script.js y reemplaza TU_ID_DE_DESPLIEGUE con la URL real de tu Web App.'
     ));
