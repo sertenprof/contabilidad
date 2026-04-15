@@ -1,15 +1,24 @@
-// script.js - Frontend contabilidad (versión corregida)
-// Asegúrate de actualizar API_URL con la URL de tu Web App
-
+// ══════════════════════════════════════════════════
+// SISTEMA DE CONTABILIDAD — FRONTEND v1.1
+// Compatible con GitHub Pages
+// ══════════════════════════════════════════════════
+//
+//  >>> PEGA AQUÍ LA URL DE TU WEB APP DEPLOY <<<
+//
 var API_URL = 'https://script.google.com/macros/s/AKfycbw9e0QSbfJvsjIrfGbXWAG2CJ3sw6PIGUN1MpHzIEs7b9p1dLrFP5GqZZsvMsQEEmm4vw/exec';
+//
+// ══════════════════════════════════════════════════
 
-var MESES = ['', 'Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio',
+var MESES = [
+  '', 'Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio',
   'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'
 ];
+
 var curSec = 'dashboard';
 var curMes = '';
 var editCtx = null;
 var apiReady = false;
+
 var SUBCATS = [
   'Gastos de Distribucion', 'Transporte', 'Publicidad', 'Comisiones',
   'Gastos de mantenimiento', 'Reparaciones', 'Gastos de suscripcion',
@@ -32,19 +41,21 @@ var SH_MAP = {
   compras: 'Compras'
 };
 
-// ----------------------
-// Utilidades DOM y formato
-// ----------------------
+// ══════════════════════════════════════
+// UTILIDADES
+// ══════════════════════════════════════
 function $(id) { return document.getElementById(id); }
 
 function f(n) {
   var p = Number(n || 0).toFixed(2).split('.');
   return '$' + p[0].replace(/\B(?=(\d{3})+(?!\d))/g, '.') + ',' + p[1];
 }
+
 function fp(n) { return (Number(n || 0)).toFixed(2) + '%'; }
 function fr(n) { return (Number(n || 0)).toFixed(2); }
 function mn(m) { return MESES[Number(m)] || ''; }
 
+// Formatear fecha para mostrar en tabla
 function fd(v) {
   if (!v) return '';
   if (v instanceof Date) {
@@ -60,6 +71,7 @@ function fd(v) {
   return s;
 }
 
+// Formatear fecha para input[type=date]
 function fdI(v) {
   if (!v) return '';
   if (v instanceof Date) {
@@ -76,45 +88,38 @@ function fdI(v) {
   return s;
 }
 
-// ----------------------
-// Loader (mostrar/ocultar)
-// ----------------------
-function showLoader() {
-  var L = $('loader');
-  if (L) L.classList.remove('hidden');
-}
-function hideLoader() {
-  var L = $('loader');
-  if (L) L.classList.add('hidden');
-}
+// ══════════════════════════════════════
+// LOADER
+// ══════════════════════════════════════
+function showLoader() { $('loader').classList.remove('hidden'); }
+function hideLoader() { $('loader').classList.add('hidden'); }
 
-// ----------------------
-// Comunicación con la API (fetch)
-// ----------------------
+// ══════════════════════════════════════
+// COMUNICACION CON LA API
+// Reemplaza google.script.run por fetch
+// ══════════════════════════════════════
 function sv(fn) {
   var args = Array.prototype.slice.call(arguments, 1);
   var params = { action: fn };
+
   for (var i = 0; i < args.length; i++) {
     if (args[i] !== null && args[i] !== undefined) {
-      params['p' + i] = typeof args[i] === 'object' ? JSON.stringify(args[i]) : String(args[i]);
+      params['p' + i] = typeof args[i] === 'object'
+        ? JSON.stringify(args[i])
+        : String(args[i]);
     }
   }
+
   var qs = Object.keys(params).map(function (k) {
     return encodeURIComponent(k) + '=' + encodeURIComponent(params[k]);
   }).join('&');
 
-  return fetch(API_URL + '?' + qs, { cache: 'no-store' })
+  return fetch(API_URL + '?' + qs)
     .then(function (res) {
       if (!res.ok) throw new Error('HTTP ' + res.status);
-      return res.text();
+      return res.json();
     })
-    .then(function (txt) {
-      if (!txt) throw new Error('Respuesta vacía del servidor');
-      try {
-        var data = JSON.parse(txt);
-      } catch (e) {
-        throw new Error('JSON inválido: ' + e.message);
-      }
+    .then(function (data) {
       if (data.error) throw new Error(data.error);
       apiReady = true;
       return data;
@@ -122,21 +127,9 @@ function sv(fn) {
     .catch(function (err) {
       console.error('API (' + fn + '):', err);
       if (!apiReady) showConnError(err);
-      toast('Error: ' + (err.message || err), 'e');
+      toast('Error: ' + err.message, 'e');
       throw err;
     });
-}
-
-// Wrapper que muestra loader si la petición tarda
-function svWithLoader() {
-  var args = Array.prototype.slice.call(arguments);
-  var showTimer = setTimeout(function () { try { showLoader(); } catch (e) { } }, 150);
-  return Promise.resolve().then(function () {
-    return sv.apply(null, args);
-  }).finally(function () {
-    clearTimeout(showTimer);
-    try { hideLoader(); } catch (e) { }
-  });
 }
 
 // Pantalla de error si la API no responde
@@ -147,94 +140,45 @@ function showConnError(err) {
     '<div class="conn-error">' +
     '<i class="fas fa-wifi"></i>' +
     '<h3>No se pudo conectar con el servidor</h3>' +
-    '<p>Verifica que la URL de la API esté configurada correctamente en <code>script.js</code> y que el Web App de Google Apps Script esté desplegado con acceso <strong>Cualquier persona</strong>.</p>' +
-    '<p style="font-size:11px;color:#aaa;margin-top:4px">Detalle: ' + (err.message || err) + '</p>' +
-    '<button class="bt bt-p" onclick="location.reload()" style="margin-top:10px"><i class="fas fa-redo"></i> Reintentar</button>' +
+    '<p>Verifica que la URL de la API este configurada correctamente en ' +
+    '<code>script.js</code> y que el Web App de Google Apps Script este ' +
+    'desplegado con acceso <strong>Cualquier persona</strong>.</p>' +
+    '<p style="font-size:11px;color:#aaa;margin-top:4px">' +
+    'Detalle: ' + (err.message || err) + '</p>' +
+    '<button class="bt bt-p" onclick="location.reload()" style="margin-top:10px">' +
+    '<i class="fas fa-redo"></i> Reintentar</button>' +
     '</div>';
 }
 
-// ----------------------
-// Toast
-// ----------------------
+// ══════════════════════════════════════
+// TOAST
+// ══════════════════════════════════════
 function toast(msg, t) {
   t = t || 'i';
   var d = document.createElement('div');
   d.className = 'toast ' + t;
   d.textContent = msg;
-  var c = $('toC');
-  if (c) c.appendChild(d);
+  $('toC').appendChild(d);
   setTimeout(function () { if (d.parentNode) d.remove(); }, 3100);
 }
 
-// ----------------------
-// Cache y prefetch
-// ----------------------
-var cache = {
-  dashboard: null,
-  Ventas: null,
-  Gastos: null,
-  Costos: null,
-  Compras: null
-};
+// ══════════════════════════════════════
+// NAVEGACION
+// ══════════════════════════════════════
+$('nav').addEventListener('click', function (e) {
+  var a = e.target.closest('a[data-s]');
+  if (!a) return;
+  go(a.dataset.s);
+  $('sb').classList.remove('open');
+});
 
-function initApp() {
-  // Retornar la promesa para que el boot pueda encadenar .finally
-  return Promise.all([
-    sv('loadDashboard', curMes || null).catch(function () { return null; }),
-    sv('getSheetData', 'Ventas').catch(function () { return { h: [], r: [] }; }),
-    sv('getSheetData', 'Gastos').catch(function () { return { h: [], r: [] }; })
-  ]).then(function (results) {
-    if (results[0]) cache.dashboard = results[0];
-    cache.Ventas = results[1];
-    cache.Gastos = results[2];
-    if (curSec === 'ventas') loadTblCached('Ventas', 'tbV', rV);
-    if (curSec === 'gastos') loadTblCached('Gastos', 'tbG', rG);
-    return results;
-  }).catch(function (err) {
-    console.error('initApp error', err);
-    throw err;
-  });
-}
+$('mobBtn').addEventListener('click', function () {
+  $('sb').classList.toggle('open');
+});
 
-// Boot: mostrar loader al inicio, prefetch y navegar a sección inicial
-(function boot() {
-  try { showLoader(); } catch (e) { }
-  var h = window.location.hash ? window.location.hash.replace('#', '') : null;
-  if (h) curSec = h;
-  initApp().finally(function () {
-    if (cache.dashboard) {
-      try { renderDashboard(cache.dashboard); } catch (e) { }
-    }
-    try { go(curSec || (window.location.hash.replace('#', '') || 'dashboard')); } catch (e) { }
-    try { hideLoader(); } catch (e) { }
-  });
-})();
-
-// ----------------------
-// Navegación
-// ----------------------
-document.addEventListener('DOMContentLoaded', function () {
-  // listeners que dependen del DOM
-  var nav = $('nav');
-  if (nav) {
-    nav.addEventListener('click', function (e) {
-      var a = e.target.closest('a[data-s]');
-      if (!a) return;
-      go(a.dataset.s);
-      var sb = $('sb');
-      if (sb) sb.classList.remove('open');
-    });
-  }
-  var mobBtn = $('mobBtn');
-  if (mobBtn) mobBtn.addEventListener('click', function () {
-    var sb = $('sb');
-    if (sb) sb.classList.toggle('open');
-  });
-  var mf = $('mf');
-  if (mf) mf.addEventListener('change', function (e) {
-    curMes = e.target.value;
-    load(curSec);
-  });
+$('mf').addEventListener('change', function (e) {
+  curMes = e.target.value;
+  load(curSec);
 });
 
 function go(s) {
@@ -265,21 +209,23 @@ function updActs(s) {
   var pdf = ['estado', 'ratios'];
   var h = '';
   if (crud.indexOf(s) !== -1) {
-    h += '<button class="bt bt-p" onclick="openAdd(\'' + s + '\')"><i class="fas fa-plus"></i> Agregar</button>';
+    h += '<button class="bt bt-p" onclick="openAdd(\'' + s + '\')">' +
+      '<i class="fas fa-plus"></i> Agregar</button>';
   }
   if (pdf.indexOf(s) !== -1) {
-    h += '<button class="bt bt-s" onclick="doPrint(\'' + s + '\')"><i class="fas fa-file-pdf"></i> Exportar PDF</button>';
+    h += '<button class="bt bt-s" onclick="doPrint(\'' + s + '\')">' +
+      '<i class="fas fa-file-pdf"></i> Exportar PDF</button>';
   }
-  if (el) el.innerHTML = h;
+  el.innerHTML = h;
 }
 
 function load(s) {
   switch (s) {
     case 'dashboard': loadDash(); break;
-    case 'ventas': loadTblCached('Ventas', 'tbV', rV); break;
-    case 'gastos': loadTblCached('Gastos', 'tbG', rG); break;
-    case 'costos': loadTblCached('Costos', 'tbC', rC); break;
-    case 'compras': loadTblCached('Compras', 'tbCo', rCo); break;
+    case 'ventas': loadTbl('Ventas', 'tbV', rV); break;
+    case 'gastos': loadTbl('Gastos', 'tbG', rG); break;
+    case 'costos': loadTbl('Costos', 'tbC', rC); break;
+    case 'compras': loadTbl('Compras', 'tbCo', rCo); break;
     case 'inventario': loadInv(); break;
     case 'estado': loadEst(); break;
     case 'ratios': loadRat(); break;
@@ -287,202 +233,235 @@ function load(s) {
   }
 }
 
-// ----------------------
-// Render helpers para tablas y cache
-// ----------------------
-function renderRowsToTable(rows, tb, fn) {
-  var el = $(tb);
-  if (!el) return;
-  if (!rows || !rows.length) {
-    el.innerHTML = '<tr><td colspan="20" class="empty"><i class="fas fa-inbox"></i>Sin registros para este periodo</td></tr>';
-    return;
-  }
-  el.innerHTML = rows.map(fn).join("");
-}
-
-function loadTblCached(sh, tb, fn) {
-  // Si hay cache, render inmediato y refrescar en background
-  if (cache[sh] && cache[sh].r) {
-    var rowsCached = cache[sh].r.filter(function (r) {
-      return !curMes || String(r['Mes'] || "").trim() === String(curMes).trim();
-    });
-    renderRowsToTable(rowsCached, tb, fn);
-    // refrescar en background
-    sv('getSheetData', sh).then(function (d) {
-      cache[sh] = d;
-      var rows = d.r.filter(function (r) {
-        return !curMes || String(r['Mes'] || "").trim() === String(curMes).trim();
-      });
-      renderRowsToTable(rows, tb, fn);
-    }).catch(function () { /* silencio */ });
-    return;
-  }
-
-  // Si no hay cache, comportamiento original con loader
-  showLoader();
-  sv('getSheetData', sh).then(function (data) {
-    hideLoader();
-    cache[sh] = data;
-    var rows = curMes
-      ? data.r.filter(function (r) { return String(r['Mes'] || "").trim() === String(curMes).trim(); })
-      : data.r;
-    renderRowsToTable(rows, tb, fn);
-  }).catch(function () { hideLoader(); });
-}
-
-// ----------------------
-// Dashboard (usa cache y svWithLoader)
-// ----------------------
-function loadDash() {
-  if (cache.dashboard) {
-    try { renderDashboard(cache.dashboard); } catch (e) { }
-    // refrescar en background
-    svWithLoader('loadDashboard', curMes || null).then(function (d) {
-      if (d) { cache.dashboard = d; try { renderDashboard(d); } catch (e) { } }
-    }).catch(function () { });
-    return;
-  }
-
-  showLoader();
-  svWithLoader('loadDashboard', curMes || null).then(function (d) {
-    if (d) { cache.dashboard = d; renderDashboard(d); }
-  }).catch(function () { })
-    .finally(function () { hideLoader(); });
-}
-
-function renderDashboard(d) {
-  if (!d) return;
-  var payload = d.estado ? d : { estado: d };
-  var e = payload.estado;
-  if (!e) return;
-
-  // KPI y margenes (igual que antes)...
-  // --- omitted for brevity; conserva tu implementación de KPI/mbG ---
-
-  // Preparar HTMLs
-  var totalG = Number(e.gt || 0);
-
-  // Desglose de Gastos
-  var rows = '<div class="tc-h"><h3>Desglose de Gastos</h3></div>' +
-    '<table><thead><tr><th>Categoria</th><th class="n">Monto</th><th class="n">%</th></tr></thead><tbody>';
-  function addRow(label, value) {
-    var pct = totalG > 0 ? ((Number(value || 0) / totalG) * 100).toFixed(2) + '%' : '0%';
-    rows += '<tr><td>' + label + '</td><td class="n">' + f(value) + '</td><td class="n">' + pct + '</td></tr>';
-  }
-  addRow('Gastos Operativos', e.go);
-  addRow('Gastos Financieros', e.gf);
-  addRow('Gastos de Administracion', e.ga);
-  rows += '<tr class="tr-t"><td>Total</td><td class="n">' + f(totalG) + '</td><td class="n">100%</td></tr>';
-  rows += '</tbody></table>';
-
-  // Costos fijos vs variables
-  var cvTotal = Number(e.cv || 0);
-  var cf = Number(e.cf || 0);
-  var cvar = Number(e.cvar || 0);
-  var htmlCosto = '<div class="tc-h"><h3>Costos Fijos vs Variables</h3></div>' +
-    '<table><thead><tr><th>Tipo</th><th class="n">Monto</th><th class="n">%</th></tr></thead><tbody>' +
-    '<tr><td>Costos Fijos</td><td class="n">' + f(cf) + '</td><td class="n">' + (cvTotal > 0 ? fp(cf / cvTotal * 100) : '0%') + '</td></tr>' +
-    '<tr><td>Costos Variables</td><td class="n">' + f(cvar) + '</td><td class="n">' + (cvTotal > 0 ? fp(cvar / cvTotal * 100) : '0%') + '</td></tr>' +
-    '<tr class="tr-t"><td>Total</td><td class="n">' + f(cvTotal) + '</td><td class="n">100%</td></tr></tbody></table>';
-
-  // Escribir en DOM con fallback
-  var dcGastoEl = elOrFallback('dcGasto', 's-gastos');
-  var dcCostoEl = elOrFallback('dcCosto', 's-costos');
-
-  if (dcGastoEl) dcGastoEl.innerHTML = rows;
-  else console.warn('No se encontró contenedor para Desglose de Gastos (dcGasto / s-gastos)');
-
-  if (dcCostoEl) dcCostoEl.innerHTML = htmlCosto;
-  else console.warn('No se encontró contenedor para Costos (dcCosto / s-costos)');
-
-  // Gráficos: Ventas vs Costos vs Gastos y dona
-  try {
-    if (typeof drawBar === 'function') drawBar({ ventas: Number(e.ventas||0), cv: Number(e.cv||0), gt: Number(e.gt||0), un: Number(e.un||0) });
-    if (typeof drawDon === 'function') drawDon({ go: Number(e.go||0), gf: Number(e.gf||0), ga: Number(e.ga||0) });
-  } catch (err) {
-    console.error('Error al dibujar gráficos', err);
-  }
-}
-
-// Desglose de Gastos (tabla)
-  try {
-    if ($('dcGasto')) {
-      var totalG = Number(e.gt || 0);
-      var rows = '';
-      rows += '<div class="tc-h"><h3>Desglose de Gastos</h3></div>';
-      rows += '<table><thead><tr><th>Categoria</th><th class="n">Monto</th><th class="n">%</th></tr></thead><tbody>';
-      var addRow = function(label, value) {
-        var pct = totalG > 0 ? fp((Number(value || 0) / totalG) * 100) : '0%';
-        rows += '<tr><td>' + label + '</td><td class="n">' + f(value) + '</td><td class="n">' + pct + '</td></tr>';
-      };
-      addRow('Gastos Operativos', e.go);
-      addRow('Gastos Financieros', e.gf);
-      addRow('Gastos de Administracion', e.ga);
-      rows += '<tr class="tr-t"><td>Total</td><td class="n">' + f(totalG) + '</td><td class="n">100%</td></tr>';
-      rows += '</tbody></table>';
-      $('dcGasto').innerHTML = rows;
-    }
-  } catch (err) { console.error('renderDashboard -> dcGasto error', err); }
-
-  // Costos fijos vs variables (tabla)
-  try {
-    if ($('dcCosto')) {
-      var cvTotal = Number(e.cv || 0);
-      var cf = Number(e.cf || 0);
-      var cvar = Number(e.cvar || 0);
-      var html = '<div class="tc-h"><h3>Costos Fijos vs Variables</h3></div>' +
-        '<table><thead><tr><th>Tipo</th><th class="n">Monto</th><th class="n">%</th></tr></thead><tbody>' +
-        '<tr><td>Costos Fijos</td><td class="n">' + f(cf) + '</td><td class="n">' + (cvTotal > 0 ? fp(cf / cvTotal * 100) : '0%') + '</td></tr>' +
-        '<tr><td>Costos Variables</td><td class="n">' + f(cvar) + '</td><td class="n">' + (cvTotal > 0 ? fp(cvar / cvTotal * 100) : '0%') + '</td></tr>' +
-        '<tr class="tr-t"><td>Total</td><td class="n">' + f(cvTotal) + '</td><td class="n">100%</td></tr></tbody></table>';
-      $('dcCosto').innerHTML = html;
-    }
-  } catch (err) { console.error('renderDashboard -> dcCosto error', err); }
-
-  // Donut de desglose (si existe)
-  try {
-    if (typeof drawDon === 'function') {
-      drawDon({ go: Number(e.go || 0), gf: Number(e.gf || 0), ga: Number(e.ga || 0) });
-    } else {
-      console.warn('drawDon no está definida');
-    }
-  } catch (err) { console.error('renderDashboard -> drawDon error', err); }
-}
-
 function kpi(l, v, s, c, cls) {
-  return '<div class="kpi ' + (c || '') + '">' +
+  return '<div class="kpi ' + c + '">' +
     '<div class="kpi-l">' + l + '</div>' +
     '<div class="kpi-v">' + v + '</div>' +
     (s ? '<div class="kpi-s ' + (cls || '') + '">' + s + '</div>' : '') +
     '</div>';
 }
+
+// ══════════════════════════════════════
+// DASHBOARD
+// ══════════════════════════════════════
+function loadDash() {
+  showLoader();
+  sv('loadDashboard', curMes || null).then(function (d) {
+    hideLoader();
+    var e = d.estado;
+
+    $('kpiG').innerHTML = [
+      kpi('Ventas Netas', f(e.ventas), '', 'c1'),
+      kpi('Utilidad Bruta', f(e.ub), 'Margen: ' + fp(e.mb), 'c2',
+        e.mb >= 50 ? 'ok' : 'no'),
+      kpi('Utilidad Neta', f(e.un), 'Margen: ' + fp(e.mn), 'c3',
+        e.un >= 0 ? 'ok' : 'no'),
+      kpi('Gastos Totales', f(e.gt), 'Oper.+Fin.+Admon.', 'c4')
+    ].join('');
+
+    $('mbG').innerHTML = [
+      mb('Margen Bruto', e.mb, 'g'),
+      mb('Margen Operativo', e.mo, 'a'),
+      mb('Margen Neto', e.mn, e.mn >= 0 ? 'g' : 'r')
+    ].join('');
+
+    $('dcCosto').innerHTML =
+      '<div class="tc-h"><h3>Costos Fijos vs Variables</h3></div>' +
+      '<table><thead><tr><th>Tipo</th><th class="n">Monto</th>' +
+      '<th class="n">%</th></tr></thead><tbody>' +
+      '<tr><td>Costos Fijos</td><td class="n">' + f(e.cf) + '</td>' +
+      '<td class="n">' + (e.cv > 0 ? fp(e.cf / e.cv * 100) : '0%') + '</td></tr>' +
+      '<tr><td>Costos Variables</td><td class="n">' + f(e.cvar) + '</td>' +
+      '<td class="n">' + (e.cv > 0 ? fp(e.cvar / e.cv * 100) : '0%') + '</td></tr>' +
+      '<tr class="tr-t"><td>Total</td><td class="n">' + f(e.cv) +
+      '</td><td class="n">100%</td></tr></tbody></table>';
+
+    $('dcGasto').innerHTML =
+      '<div class="tc-h"><h3>Desglose de Gastos</h3></div>' +
+      '<table><thead><tr><th>Categoria</th><th class="n">Monto</th>' +
+      '<th class="n">%</th></tr></thead><tbody>' +
+      '<tr><td>Gastos Operativos</td><td class="n">' + f(e.go) + '</td>' +
+      '<td class="n">' + (e.gt > 0 ? fp(e.go / e.gt * 100) : '0%') + '</td></tr>' +
+      '<tr><td>Gastos Financieros</td><td class="n">' + f(e.gf) + '</td>' +
+      '<td class="n">' + (e.gt > 0 ? fp(e.gf / e.gt * 100) : '0%') + '</td></tr>' +
+      '<tr><td>Gastos de Administracion</td><td class="n">' + f(e.ga) + '</td>' +
+      '<td class="n">' + (e.gt > 0 ? fp(e.ga / e.gt * 100) : '0%') + '</td></tr>' +
+      '<tr class="tr-t"><td>Total</td><td class="n">' + f(e.gt) +
+      '</td><td class="n">100%</td></tr></tbody></table>';
+
+    drawBar(e);
+    drawDon(e);
+  }).catch(function () { hideLoader(); });
+}
+
 function mb(label, pct, c) {
-  var cl = Math.max(0, Math.min(100, pct || 0));
+  var cl = Math.max(0, Math.min(100, pct));
   return '<div class="mb-i"><label>' + label +
     ' <span>' + fp(pct) + '</span></label>' +
     '<div class="mb-track"><div class="mb-fill ' + c +
     '" style="width:' + cl + '%"></div></div></div>';
 }
 
-// drawBar, drawDon: mantener tus implementaciones existentes (no las repito aquí por brevedad)
+// ── Grafico de barras (Canvas) ──
+function drawBar(e) {
+  var cv = $('cvBar');
+  if (!cv) return;
+  var ctx = cv.getContext('2d');
+  var dpr = window.devicePixelRatio || 1;
+  var rect = cv.parentElement.getBoundingClientRect();
+  cv.width = rect.width * dpr;
+  cv.height = 200 * dpr;
+  cv.style.width = rect.width + 'px';
+  cv.style.height = '200px';
+  ctx.scale(dpr, dpr);
+  var W = rect.width, H = 200;
+  ctx.clearRect(0, 0, W, H);
 
-// ----------------------
-// Tablas CRUD (renderers)
-// ----------------------
+  var vals = [e.ventas, e.cv, e.gt, Math.max(0, e.un)];
+  var labels = ['Ventas', 'Costos', 'Gastos', 'Util. Neta'];
+  var colors = ['#2d6a4f', '#b8860b', '#c1121f', '#457b9d'];
+  var maxV = Math.max.apply(null, vals.concat([1]));
+  var pad = { t: 10, b: 36, l: 56, r: 16 };
+  var cW = W - pad.l - pad.r;
+  var cH = H - pad.t - pad.b;
+  var barW = Math.min(50, (cW / vals.length) * 0.55);
+  var gap = (cW - barW * vals.length) / (vals.length + 1);
+
+  ctx.strokeStyle = '#eae8e2';
+  ctx.lineWidth = 1;
+  for (var i = 0; i <= 4; i++) {
+    var y = pad.t + (cH / 4) * i;
+    ctx.beginPath();
+    ctx.moveTo(pad.l, y);
+    ctx.lineTo(W - pad.r, y);
+    ctx.stroke();
+    ctx.fillStyle = '#999';
+    ctx.font = '10px Outfit,sans-serif';
+    ctx.textAlign = 'right';
+    ctx.fillText(f(maxV - (maxV / 4) * i), pad.l - 6, y + 3);
+  }
+
+  for (var j = 0; j < vals.length; j++) {
+    var x = pad.l + gap + (barW + gap) * j;
+    var bH = (vals[j] / maxV) * cH;
+    var yy = pad.t + cH - bH;
+    ctx.fillStyle = colors[j];
+    ctx.beginPath();
+    var rad = Math.min(4, barW / 4);
+    ctx.moveTo(x, yy + rad);
+    ctx.arcTo(x, yy, x + rad, yy, rad);
+    ctx.arcTo(x + barW, yy, x + barW, yy + rad, rad);
+    ctx.lineTo(x + barW, pad.t + cH);
+    ctx.lineTo(x, pad.t + cH);
+    ctx.closePath();
+    ctx.fill();
+    ctx.fillStyle = '#666';
+    ctx.font = '10px Outfit,sans-serif';
+    ctx.textAlign = 'center';
+    ctx.fillText(labels[j], x + barW / 2, H - 10);
+    ctx.fillStyle = '#333';
+    ctx.font = '600 10px Outfit,sans-serif';
+    ctx.fillText(f(vals[j]), x + barW / 2, yy - 4);
+  }
+}
+
+// ── Grafico dona (Canvas) ──
+function drawDon(e) {
+  var cv = $('cvDon');
+  if (!cv) return;
+  var ctx = cv.getContext('2d');
+  var dpr = window.devicePixelRatio || 1;
+  var rect = cv.parentElement.getBoundingClientRect();
+  cv.width = rect.width * dpr;
+  cv.height = 200 * dpr;
+  cv.style.width = rect.width + 'px';
+  cv.style.height = '200px';
+  ctx.scale(dpr, dpr);
+  var W = rect.width, H = 200;
+  ctx.clearRect(0, 0, W, H);
+
+  var vals = [e.go, e.gf, e.ga];
+  var labels = ['Operativos', 'Financieros', 'Administracion'];
+  var colors = ['#e07a5f', '#c1121f', '#457b9d'];
+  var total = vals.reduce(function (a, b) { return a + b; }, 0);
+
+  if (total === 0) {
+    ctx.fillStyle = '#ccc';
+    ctx.font = '13px Outfit,sans-serif';
+    ctx.textAlign = 'center';
+    ctx.fillText('Sin datos de gastos', W / 2, H / 2);
+    return;
+  }
+
+  var cx = W / 2, cy = H / 2;
+  var R = Math.min(W, H) / 2 - 20, r = R * 0.55;
+  var angle = -Math.PI / 2;
+
+  for (var i = 0; i < vals.length; i++) {
+    if (vals[i] === 0) continue;
+    var slice = (vals[i] / total) * Math.PI * 2;
+    ctx.beginPath();
+    ctx.arc(cx, cy, R, angle, angle + slice);
+    ctx.arc(cx, cy, r, angle + slice, angle, true);
+    ctx.closePath();
+    ctx.fillStyle = colors[i];
+    ctx.fill();
+    var mid = angle + slice / 2;
+    var lx = cx + Math.cos(mid) * (R + 14);
+    var ly = cy + Math.sin(mid) * (R + 14);
+    ctx.fillStyle = '#444';
+    ctx.font = '10px Outfit,sans-serif';
+    ctx.textAlign = (mid > Math.PI / 2 && mid < Math.PI * 1.5) ? 'right' : 'left';
+    ctx.fillText(labels[i] + ' ' + fp(vals[i] / total * 100), lx, ly + 3);
+    angle += slice;
+  }
+
+  ctx.fillStyle = '#ffffff';
+  ctx.beginPath();
+  ctx.arc(cx, cy, r - 1, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.fillStyle = '#1b1b1b';
+  ctx.font = '800 18px Outfit,sans-serif';
+  ctx.textAlign = 'center';
+  ctx.fillText(f(total), cx, cy + 1);
+  ctx.fillStyle = '#999';
+  ctx.font = '10px Outfit,sans-serif';
+  ctx.fillText('Total Gastos', cx, cy + 16);
+}
+
+// ══════════════════════════════════════
+// TABLAS CRUD
+// ══════════════════════════════════════
 function loadTbl(sh, tb, fn) {
-  // mantenida por compatibilidad, redirige a loadTblCached
-  loadTblCached(sh, tb, fn);
+  sv('getSheetData', sh).then(function (data) {
+    var rows = curMes
+      ? data.r.filter(function (r) {
+        return String(r['Mes'] || '').trim() === String(curMes).trim();
+      })
+      : data.r;
+    var el = $(tb);
+    if (!rows.length) {
+      el.innerHTML = '<tr><td colspan="20" class="empty">' +
+        '<i class="fas fa-inbox"></i>Sin registros para este periodo</td></tr>';
+      return;
+    }
+    el.innerHTML = rows.map(fn).join('');
+  });
 }
 
 function ab(sh, r) {
   return '<td class="acts">' +
-    '<button class="bt bt-s bt-i" onclick="openEdit(\'' + sh + '\',' + r._row + ')" title="Editar"><i class="fas fa-pen"></i></button>' +
-    '<button class="bt bt-d bt-i" onclick="delRow(\'' + sh + '\',' + r._row + ')" title="Eliminar"><i class="fas fa-trash"></i></button>' +
+    '<button class="bt bt-s bt-i" onclick="openEdit(\'' + sh + '\',' +
+    r._row + ')" title="Editar"><i class="fas fa-pen"></i></button>' +
+    '<button class="bt bt-d bt-i" onclick="delRow(\'' + sh + '\',' +
+    r._row + ')" title="Eliminar"><i class="fas fa-trash"></i></button>' +
     '</td>';
 }
 
 function rV(r) {
-  var t = Number(r['Transferencia'] || 0) + Number(r['Efectivo'] || 0) + Number(r['Otros Activos'] || 0);
+  var t = Number(r['Transferencia'] || 0) +
+    Number(r['Efectivo'] || 0) +
+    Number(r['Otros Activos'] || 0);
   return '<tr><td>' + fd(r['Fecha']) + '</td>' +
     '<td>' + (r['Descripcion'] || '') + '</td>' +
     '<td>' + (r['Tipo'] || '') + '</td>' +
@@ -492,6 +471,7 @@ function rV(r) {
     '<td class="n" style="font-weight:700">' + f(t) + '</td>' +
     '<td>' + mn(r['Mes']) + '</td>' + ab('Ventas', r) + '</tr>';
 }
+
 function rG(r) {
   return '<tr><td>' + fd(r['Fecha']) + '</td>' +
     '<td>' + (r['Descripcion'] || '') + '</td>' +
@@ -502,6 +482,7 @@ function rG(r) {
     '<td>' + (r['Factura'] || '-') + '</td>' +
     ab('Gastos', r) + '</tr>';
 }
+
 function rC(r) {
   return '<tr><td>' + fd(r['Fecha']) + '</td>' +
     '<td>' + (r['Descripcion'] || '') + '</td>' +
@@ -511,9 +492,13 @@ function rC(r) {
     '<td>' + (r['Factura'] || '-') + '</td>' +
     ab('Costos', r) + '</tr>';
 }
+
 function rCo(r) {
   var stock = String(r['Stock'] || '').trim();
-  var stockHtml = stock === 'Sí' ? '<span style="color:var(--accent);font-weight:700"><i class="fas fa-check-circle"></i> Sí</span>' : '<span style="color:var(--muted)">No</span>';
+  var stockHtml = stock === 'Sí'
+    ? '<span style="color:var(--accent);font-weight:700">' +
+    '<i class="fas fa-check-circle"></i> Sí</span>'
+    : '<span style="color:var(--muted)">No</span>';
   return '<tr><td>' + fd(r['Fecha']) + '</td>' +
     '<td>' + (r['Producto'] || '') + '</td>' +
     '<td>' + (r['Cantidad'] || '') + '</td>' +
@@ -523,9 +508,6 @@ function rCo(r) {
     '<td>' + stockHtml + '</td>' + ab('Compras', r) + '</tr>';
 }
 
-// ----------------------
-// Inventario, Estado, Ratios, Config (mantener lógicas existentes)
-// ----------------------
 // ══════════════════════════════════════
 // INVENTARIO
 // ══════════════════════════════════════
@@ -694,9 +676,9 @@ function saveCfg() {
   });
 }
 
-// ----------------------
-// Modales y formularios
-// ----------------------
+// ══════════════════════════════════════
+// MODALES
+// ══════════════════════════════════════
 function opMo(title, html, onSv) {
   $('moT').textContent = title;
   $('moB').innerHTML = html;
@@ -714,26 +696,32 @@ function clMo() {
 document.addEventListener('keydown', function (e) {
   if (e.key === 'Escape') clMo();
 });
-$('moOv') && $('moOv').addEventListener('click', function (e) {
+
+$('moOv').addEventListener('click', function (e) {
   if (e.target === e.currentTarget) clMo();
 });
 
+// ── Form helpers ──
 function moSel() {
-  return '<option value=""> -- Mes --</option>' +
+  return '<option value="">-- Mes --</option>' +
     MESES.slice(1).map(function (m, i) {
       return '<option value="' + (i + 1) + '">' + m + '</option>';
-    }).join("");
+    }).join('');
 }
 
 function selOpt(opts, sel) {
   return opts.map(function (o) {
-    return '<option' + (String(sel || '').trim() === String(o).trim() ? ' selected' : '') + '>' + o + '</option>';
-  }).join("");
+    return '<option' +
+      (String(sel || '').trim() === String(o).trim() ? ' selected' : '') +
+      '>' + o + '</option>';
+  }).join('');
 }
 
 function fg(l, n, t, v, x) {
   return '<div class="fg"><label>' + l + '</label>' +
-    '<input type="' + (t || 'text') + '" name="' + n + '" value="' + (v !== undefined && v !== null ? String(v) : '') + '" ' + (x || '') + '></div>';
+    '<input type="' + (t || 'text') + '" name="' + n +
+    '" value="' + (v !== undefined && v !== null ? String(v) : '') +
+    '" ' + (x || '') + '></div>';
 }
 
 function fs(l, n, opts) {
@@ -745,7 +733,8 @@ function formHTML(sec, d) {
   d = d || {};
   var ms = moSel();
   var mesVal = String(d['Mes'] || '').trim();
-  if (mesVal) ms = ms.replace('value="' + mesVal + '"', 'value="' + mesVal + '" selected');
+  if (mesVal) ms = ms.replace('value="' + mesVal + '"',
+    'value="' + mesVal + '" selected');
 
   switch (sec) {
     case 'ventas':
@@ -759,26 +748,32 @@ function formHTML(sec, d) {
         '</div>' +
         fg('Otros Activos', 'Otros Activos', 'number', d['Otros Activos'] || '0', 'step="0.01"') +
         fs('Mes', 'Mes', ms);
+
     case 'gastos':
       return '<div class="fr">' +
         fg('Fecha', 'Fecha', 'date', fdI(d['Fecha'])) + '</div>' +
         fg('Descripcion', 'Descripcion', 'text', d['Descripcion']) +
-        fs('Categoria', 'Categoria', selOpt(['Operativo', 'Financiero', 'Administrativo', 'Impuestos'], d['Categoria'])) +
+        fs('Categoria', 'Categoria',
+          selOpt(['Operativo', 'Financiero', 'Administrativo', 'Impuestos'], d['Categoria'])) +
         fs('Subcategoria', 'Subcategoria', selOpt(SUBCATS, d['Subcategoria'])) +
         fg('Monto', 'Monto', 'number', d['Monto'] || '0', 'step="0.01"') +
-        fs('Clasificacion', 'Clasificacion', selOpt(['Varia', 'No Varia'], d['Clasificacion'])) +
+        fs('Clasificacion', 'Clasificacion',
+          selOpt(['Varia', 'No Varia'], d['Clasificacion'])) +
         fs('Tipo', 'Tipo', selOpt(['Fijo', 'Variable'], d['Tipo'])) +
         fg('Factura', 'Factura', 'text', d['Factura']) +
         fs('Mes', 'Mes', ms);
+
     case 'costos':
       return '<div class="fr">' +
         fg('Fecha', 'Fecha', 'date', fdI(d['Fecha'])) + '</div>' +
         fs('Descripcion', 'Descripcion', selOpt(COSTOS_DESC, d['Descripcion'])) +
         fg('Monto', 'Monto', 'number', d['Monto'] || '0', 'step="0.01"') +
-        fs('Clasificacion', 'Clasificacion', selOpt(['Varia', 'No Varia'], d['Clasificacion'])) +
+        fs('Clasificacion', 'Clasificacion',
+          selOpt(['Varia', 'No Varia'], d['Clasificacion'])) +
         fs('Tipo', 'Tipo', selOpt(['Fijo', 'Variable'], d['Tipo'])) +
         fg('Factura', 'Factura', 'text', d['Factura']) +
         fs('Mes', 'Mes', ms);
+
     case 'compras':
       return '<div class="fr">' +
         fg('Fecha', 'Fecha', 'date', fdI(d['Fecha'])) + '</div>' +
@@ -802,17 +797,16 @@ function getFormData() {
   return d;
 }
 
-// ----------------------
-// CRUD: Add / Edit / Delete (optimista)
-// ----------------------
+// ── CRUD: Agregar ──
 function openAdd(sec) {
   editCtx = null;
   var l = sec.charAt(0).toUpperCase() + sec.slice(1);
   opMo('Agregar ' + l, formHTML(sec), function () {
-    saveFromFormOptimistic(sec);
+    saveFromForm(sec);
   });
 }
 
+// ── CRUD: Editar ──
 function openEdit(sh, row) {
   sv('getSheetData', sh).then(function (data) {
     var r = null;
@@ -821,6 +815,7 @@ function openEdit(sh, row) {
     }
     if (!r) return;
     editCtx = { sh: sh, row: row };
+
     if (sh === 'Inventario_Inicial' || sh === 'Inventario_Final') {
       var t = sh === 'Inventario_Inicial' ? 'Inventario Inicial' : 'Inventario Final';
       var ms = moSel();
@@ -843,102 +838,104 @@ function openEdit(sh, row) {
       if (sec) {
         var l = sec.charAt(0).toUpperCase() + sec.slice(1);
         opMo('Editar ' + l, formHTML(sec, r), function () {
-          saveFromFormOptimistic(sec);
+          saveFromForm(sec);
         });
       }
     }
-  }).catch(function () { toast('Error cargando registro', 'e'); });
+  });
 }
 
-function saveFromFormOptimistic(sec) {
+// ── CRUD: Guardar ──
+function saveFromForm(sec) {
   var d = getFormData();
   if (!d.Fecha) { toast('La fecha es obligatoria', 'e'); return; }
   if (!d.Mes) { toast('El mes es obligatorio', 'e'); return; }
+
   if (sec === 'compras') {
     d['Monto'] = (Number(d.Cantidad || 0) * Number(d.Precio || 0)).toFixed(2);
   }
 
-  var sh = SH_MAP[sec];
-  var tempRow = Object.assign({}, d, { _row: 'temp_' + Date.now() });
-  if (!cache[sh]) cache[sh] = { h: [], r: [] };
-  cache[sh].r = [tempRow].concat(cache[sh].r || []);
-
-  // render inmediato
-  switch (sec) {
-    case 'ventas': renderRowsToTable(cache[sh].r.filter(function (r) { return !curMes || String(r['Mes'] || "").trim() === String(curMes).trim(); }), 'tbV', rV); break;
-    case 'gastos': renderRowsToTable(cache[sh].r.filter(function (r) { return !curMes || String(r['Mes'] || "").trim() === String(curMes).trim(); }), 'tbG', rG); break;
-    case 'costos': renderRowsToTable(cache[sh].r.filter(function (r) { return !curMes || String(r['Mes'] || "").trim() === String(curMes).trim(); }), 'tbC', rC); break;
-    case 'compras': renderRowsToTable(cache[sh].r.filter(function (r) { return !curMes || String(r['Mes'] || "").trim() === String(curMes).trim(); }), 'tbCo', rCo); break;
-  }
-
-  var apiCall;
-  if (editCtx && editCtx.sh === sh) {
-    apiCall = sv('editRow', editCtx.sh, editCtx.row, d);
-  } else if (sec === 'compras') {
-    apiCall = sv('addCompraConStock', d);
-  } else {
-    apiCall = sv('addRow', sh, d);
-  }
-
-  apiCall.then(function (res) {
-    if (!res || res.ok === false) {
-      toast('Error al guardar: ' + (res && res.msg ? res.msg : ''), 'e');
-      sv('getSheetData', sh).then(function (d2) { cache[sh] = d2; renderRowsToTable(d2.r.filter(function (r) { return !curMes || String(r['Mes'] || "").trim() === String(curMes).trim(); }), (sh === 'Ventas' ? 'tbV' : sh === 'Gastos' ? 'tbG' : sh === 'Costos' ? 'tbC' : 'tbCo'), (sh === 'Ventas' ? rV : sh === 'Gastos' ? rG : sh === 'Costos' ? rC : rCo)); });
-    } else {
-      // refrescar para obtener _row real
-      sv('getSheetData', sh).then(function (d2) {
-        cache[sh] = d2;
-        renderRowsToTable(d2.r.filter(function (r) { return !curMes || String(r['Mes'] || "").trim() === String(curMes).trim(); }), (sh === 'Ventas' ? 'tbV' : sh === 'Gastos' ? 'tbG' : sh === 'Costos' ? 'tbC' : 'tbCo'), (sh === 'Ventas' ? rV : sh === 'Gastos' ? rG : sh === 'Costos' ? rC : rCo));
-      });
-      toast(editCtx ? 'Registro actualizado' : 'Registro agregado', 's');
+  if (editCtx && SH_MAP[sec]) {
+    sv('editRow', editCtx.sh, editCtx.row, d).then(function () {
+      toast('Registro actualizado', 's');
       clMo();
-      editCtx = null;
-    }
-  }).catch(function (err) {
-    toast('Error de red al guardar', 'e');
-    sv('getSheetData', sh).then(function (d2) {
-      cache[sh] = d2;
-      renderRowsToTable(d2.r.filter(function (r) { return !curMes || String(r['Mes'] || "").trim() === String(curMes).trim(); }), (sh === 'Ventas' ? 'tbV' : sh === 'Gastos' ? 'tbG' : sh === 'Costos' ? 'tbC' : 'tbCo'), (sh === 'Ventas' ? rV : sh === 'Gastos' ? rG : sh === 'Costos' ? rC : rCo));
+      load(curSec);
     });
-  });
+  } else {
+    if (sec === 'compras') {
+      sv('addCompraConStock', d).then(function () {
+        var msg = 'Registro agregado';
+        if (String(d.Stock || '').trim() === 'Sí') {
+          msg += ' — incluido en Inventario Final';
+        }
+        toast(msg, 's');
+        clMo();
+        load(curSec);
+      });
+    } else {
+      sv('addRow', SH_MAP[sec], d).then(function () {
+        toast('Registro agregado', 's');
+        clMo();
+        load(curSec);
+      });
+    }
+  }
 }
 
-// Inventario save
+// ── Inventario: Agregar ──
+function addInv(sh) {
+  editCtx = null;
+  var t = sh === 'Inventario_Inicial' ? 'Inventario Inicial' : 'Inventario Final';
+  opMo('Agregar ' + t,
+    fg('Producto', 'Producto', 'text') +
+    fg('U/M', 'U/M', 'text', '', 'placeholder="unidad"') +
+    '<div class="fr">' +
+    fg('Cantidad', 'Cantidad', 'number', '0', 'step="0.01"') +
+    fg('Precio', 'Precio', 'number', '0', 'step="0.01"') +
+    '</div>' + fs('Mes', 'Mes', moSel()),
+    function () { saveInv(sh); }
+  );
+}
+
+// ── Inventario: Guardar ──
 function saveInv(sh) {
   var d = getFormData();
   if (!d.Producto) { toast('El producto es obligatorio', 'e'); return; }
   d['Valor Total'] = (Number(d.Cantidad || 0) * Number(d.Precio || 0)).toFixed(2);
+
   if (editCtx) {
     sv('editRow', editCtx.sh, editCtx.row, d).then(function () {
       toast('Registro actualizado', 's');
       clMo();
       load('inventario');
-    }).catch(function () { toast('Error actualizando inventario', 'e'); });
+    });
   } else {
     sv('addRow', sh, d).then(function () {
       toast('Registro agregado', 's');
       clMo();
       load('inventario');
-    }).catch(function () { toast('Error agregando inventario', 'e'); });
+    });
   }
 }
 
-// Delete
+// ── CRUD: Eliminar ──
 function delRow(sh, row) {
   opMo('Confirmar eliminacion',
-    '<p style="font-size:13px;color:#777">Esta accion no se puede deshacer. Deseas eliminar este registro ?</p>',
+    '<p style="font-size:13px;color:#777">Esta accion no se puede deshacer. ' +
+    'Deseas eliminar este registro?</p>',
     function () {
       sv('removeRow', sh, row).then(function () {
         toast('Registro eliminado', 's');
         clMo();
         load(curSec);
-      }).catch(function () { toast('Error eliminando registro', 'e'); });
+      });
     }
   );
   $('moSv').className = 'bt bt-d';
   $('moSv').innerHTML = '<i class="fas fa-trash"></i> Eliminar';
 }
 
+// ══════════════════════════════════════
 // PRINT / PDF
 // ══════════════════════════════════════
 function doPrint(sec) {
@@ -988,10 +985,31 @@ function doPrint(sec) {
   w.document.close();
 }
 
-// ----------------------
-// Configuración final
-// ----------------------
-// Asegúrate de que los elementos HTML con ids usados existan en tu DOM:
-// loader, ct, toC, nav, sb, mobBtn, mf, pgT, topA, kpiG, mbG, dcCosto, dcGasto, cvBar, cvDon, tbV, tbG, tbC, tbCo, tbII, tbIF, estT, tbE, rtG, cfgG, moT, moB, moSv, moOv, toC
+// ══════════════════════════════════════
+// HASH NAVIGATION
+// ══════════════════════════════════════
+function initHash() {
+  var h = window.location.hash.replace('#', '');
+  if (h && document.querySelector('[data-s="' + h + '"]')) go(h);
+}
 
-// Fin del script.js
+window.addEventListener('hashchange', function () {
+  var h = window.location.hash.replace('#', '');
+  if (h && document.querySelector('[data-s="' + h + '"]')) go(h);
+});
+
+// ══════════════════════════════════════
+// INICIO
+// ══════════════════════════════════════
+document.addEventListener('DOMContentLoaded', function () {
+  // Verificar que la URL esta configurada
+  if (API_URL.indexOf('https://script.google.com/macros/s/AKfycbw9e0QSbfJvsjIrfGbXWAG2CJ3sw6PIGUN1MpHzIEs7b9p1dLrFP5GqZZsvMsQEEmm4vw/exec') !== -1) {
+    showConnError(new Error(
+      'Abre script.js y reemplaza TU_ID_DE_DESPLIEGUE con la URL real de tu Web App.'
+    ));
+    hideLoader();
+    return;
+  }
+  initHash();
+  loadDash();
+});
