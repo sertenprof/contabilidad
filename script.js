@@ -351,52 +351,96 @@ function loadDash() {
 }
 
 function renderDashboard(d) {
-  if (!d || !d.estado) return;
-  var e = d.estado;
-  var kpiG = $('kpiG');
-  if (kpiG) {
-    kpiG.innerHTML = [
-      kpi('Ventas Netas', f(e.ventas), '', 'c1'),
-      kpi('Utilidad Bruta', f(e.ub), 'Margen: ' + fp(e.mb), 'c2', e.mb >= 50 ? 'ok' : 'no'),
-      kpi('Utilidad Neta', f(e.un), 'Margen: ' + fp(e.mn), 'c3', e.un >= 0 ? 'ok' : 'no'),
-      kpi('Gastos Totales', f(e.gt), 'Oper.+Fin.+Admon.', 'c4')
-    ].join("");
+  if (!d) { console.warn('renderDashboard: argumento nulo'); return; }
+  // Si la respuesta viene envuelta (ok + estado), usar d.estado
+  var payload = d.estado ? d : { estado: d };
+  var e = payload.estado;
+  if (!e) { console.warn('renderDashboard: no hay campo estado', d); return; }
+
+  // KPI principal
+  try {
+    var kpiG = $('kpiG');
+    if (kpiG) {
+      kpiG.innerHTML = [
+        kpi('Ventas Netas', f(e.ventas), '', 'c1'),
+        kpi('Utilidad Bruta', f(e.ub), 'Margen: ' + fp(e.mb), 'c2', e.mb >= 50 ? 'ok' : 'no'),
+        kpi('Utilidad Neta', f(e.un), 'Margen: ' + fp(e.mn), 'c3', e.un >= 0 ? 'ok' : 'no'),
+        kpi('Gastos Totales', f(e.gt), 'Oper.+Fin.+Admon.', 'c4')
+      ].join('');
+    }
+  } catch (err) {
+    console.error('renderDashboard -> KPI error', err);
   }
-  // resto del render (mbG, dcCosto, dcGasto, gráficos)...
+
+  // Margenes
   try {
-    $('mbG').innerHTML = [
-      mb('Margen Bruto', e.mb, 'g'),
-      mb('Margen Operativo', e.mo, 'a'),
-      mb('Margen Neto', e.mn, e.mn >= 0 ? 'g' : 'r')
-    ].join("");
-  } catch (e) { }
+    if ($('mbG')) {
+      $('mbG').innerHTML = [
+        mb('Margen Bruto', e.mb, 'g'),
+        mb('Margen Operativo', e.mo, 'a'),
+        mb('Margen Neto', e.mn, e.mn >= 0 ? 'g' : 'r')
+      ].join('');
+    }
+  } catch (err) { console.error('renderDashboard -> mbG error', err); }
+
+  // Ventas vs Costos vs Gastos (gráfico de barras)
   try {
-    $('dcCosto').innerHTML =
-      '<div class="tc-h"><h3>Costos Fijos vs Variables</h3></div>' +
-      '<table><thead><tr><th>Tipo</th><th class="n">Monto</th>' +
-      '<th class="n">%</th></tr></thead><tbody>' +
-      '<tr><td>Costos Fijos</td><td class="n">' + f(e.cf) + '</td>' +
-      '<td class="n">' + (e.cv > 0 ? fp(e.cf / e.cv * 100) : '0%') + '</td></tr>' +
-      '<tr><td>Costos Variables</td><td class="n">' + f(e.cvar) + '</td>' +
-      '<td class="n">' + (e.cv > 0 ? fp(e.cvar / e.cv * 100) : '0%') + '</td></tr>' +
-      '<tr class="tr-t"><td>Total</td><td class="n">' + f(e.cv) +
-      '</td><td class="n">100%</td></tr></tbody></table>';
-  } catch (e) { }
+    // drawBar espera un objeto con ventas, cv (costos totales), gt (gastos totales), un (utilidad neta)
+    if (typeof drawBar === 'function') {
+      drawBar({
+        ventas: Number(e.ventas || 0),
+        cv: Number(e.cv || 0),
+        gt: Number(e.gt || 0),
+        un: Number(e.un || 0)
+      });
+    } else {
+      console.warn('drawBar no está definida');
+    }
+  } catch (err) { console.error('renderDashboard -> drawBar error', err); }
+
+  // Desglose de Gastos (tabla)
   try {
-    $('dcGasto').innerHTML =
-      '<div class="tc-h"><h3>Desglose de Gastos</h3></div>' +
-      '<table><thead><tr><th>Categoria</th><th class="n">Monto</th>' +
-      '<th class="n">%</th></tr></thead><tbody>' +
-      '<tr><td>Gastos Operativos</td><td class="n">' + f(e.go) + '</td>' +
-      '<td class="n">' + (e.gt > 0 ? fp(e.go / e.gt * 100) : '0%') + '</td></tr>' +
-      '<tr><td>Gastos Financieros</td><td class="n">' + f(e.gf) + '</td>' +
-      '<td class="n">' + (e.gt > 0 ? fp(e.gf / e.gt * 100) : '0%') + '</td></tr>' +
-      '<tr><td>Gastos de Administracion</td><td class="n">' + f(e.ga) + '</td>' +
-      '<td class="n">' + (e.gt > 0 ? fp(e.ga / e.gt * 100) : '0%') + '</td></tr>' +
-      '<tr class="tr-t"><td>Total</td><td class="n">' + f(e.gt) +
-      '</td><td class="n">100%</td></tr></tbody></table>';
-  } catch (e) { }
-  try { drawBar(e); drawDon(e); } catch (e) { }
+    if ($('dcGasto')) {
+      var totalG = Number(e.gt || 0);
+      var rows = '';
+      rows += '<div class="tc-h"><h3>Desglose de Gastos</h3></div>';
+      rows += '<table><thead><tr><th>Categoria</th><th class="n">Monto</th><th class="n">%</th></tr></thead><tbody>';
+      var addRow = function(label, value) {
+        var pct = totalG > 0 ? fp((Number(value || 0) / totalG) * 100) : '0%';
+        rows += '<tr><td>' + label + '</td><td class="n">' + f(value) + '</td><td class="n">' + pct + '</td></tr>';
+      };
+      addRow('Gastos Operativos', e.go);
+      addRow('Gastos Financieros', e.gf);
+      addRow('Gastos de Administracion', e.ga);
+      rows += '<tr class="tr-t"><td>Total</td><td class="n">' + f(totalG) + '</td><td class="n">100%</td></tr>';
+      rows += '</tbody></table>';
+      $('dcGasto').innerHTML = rows;
+    }
+  } catch (err) { console.error('renderDashboard -> dcGasto error', err); }
+
+  // Costos fijos vs variables (tabla)
+  try {
+    if ($('dcCosto')) {
+      var cvTotal = Number(e.cv || 0);
+      var cf = Number(e.cf || 0);
+      var cvar = Number(e.cvar || 0);
+      var html = '<div class="tc-h"><h3>Costos Fijos vs Variables</h3></div>' +
+        '<table><thead><tr><th>Tipo</th><th class="n">Monto</th><th class="n">%</th></tr></thead><tbody>' +
+        '<tr><td>Costos Fijos</td><td class="n">' + f(cf) + '</td><td class="n">' + (cvTotal > 0 ? fp(cf / cvTotal * 100) : '0%') + '</td></tr>' +
+        '<tr><td>Costos Variables</td><td class="n">' + f(cvar) + '</td><td class="n">' + (cvTotal > 0 ? fp(cvar / cvTotal * 100) : '0%') + '</td></tr>' +
+        '<tr class="tr-t"><td>Total</td><td class="n">' + f(cvTotal) + '</td><td class="n">100%</td></tr></tbody></table>';
+      $('dcCosto').innerHTML = html;
+    }
+  } catch (err) { console.error('renderDashboard -> dcCosto error', err); }
+
+  // Donut de desglose (si existe)
+  try {
+    if (typeof drawDon === 'function') {
+      drawDon({ go: Number(e.go || 0), gf: Number(e.gf || 0), ga: Number(e.ga || 0) });
+    } else {
+      console.warn('drawDon no está definida');
+    }
+  } catch (err) { console.error('renderDashboard -> drawDon error', err); }
 }
 
 function kpi(l, v, s, c, cls) {
