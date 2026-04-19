@@ -5,7 +5,7 @@
 //
 //  >>> PEGA AQUÍ LA URL DE TU WEB APP DEPLOY <<<
 //
-var API_URL = 'https://script.google.com/macros/s/AKfycbzrOdh48p2HD8i9G8I8kMcweqmaDXQwENMz9DOoczei9-e-w3Ob2tSIBZuhAVZsc_F9/exec';
+var API_URL = 'https://script.google.com/macros/s/AKfycbyHAuMdWWkObjVL10npZshMLSEcpdSS6V2NC4v3TVoxSq6H1BYS5hwstH0rPdpWdL0d/exec';
 //
 // ══════════════════════════════════════════════════
 
